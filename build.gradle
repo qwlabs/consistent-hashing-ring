@@ -1,0 +1,44 @@
+buildscript {
+    repositories {
+        mavenCentral()
+        jcenter()
+        mavenLocal()
+    }
+}
+
+repositories {
+    jcenter()
+}
+
+subprojects {
+    apply plugin: 'java'
+
+
+    repositories {
+        jcenter()
+    }
+
+    compileJava {
+        options.encoding = 'UTF-8'
+        options.compilerArgs << '-parameters'
+    }
+
+    compileTestJava {
+        options.encoding = 'UTF-8'
+    }
+
+    java {
+        sourceCompatibility = JavaVersion.VERSION_11
+        targetCompatibility = JavaVersion.VERSION_11
+    }
+
+    test {
+        useJUnitPlatform()
+    }
+
+    dependencies {
+        implementation "com.google.guava:guava:${guavaVersion}"
+        implementation "org.slf4j:slf4j-api:${slf4jVersion}"
+        implementation "net.openhft:zero-allocation-hashing:${openhftZeroAllocationHashingVersion}"
+    }
+}

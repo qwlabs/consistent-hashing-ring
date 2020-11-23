@@ -1,0 +1,5 @@
+
+dependencies {
+    compile project(':core')
+    implementation "net.openhft:zero-allocation-hashing:${openhftZeroAllocationHashingVersion}"
+}
