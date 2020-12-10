@@ -84,12 +84,12 @@ public class ConsistentHashingRing {
         }
         LOGGER.trace("Remove node {} from the {}.", name, this.name);
         Node[] newNodes = new Node[oldRing.nodes.length - VIRTUAL_NODE_COUNT_PER_NODE];
-        byte oldIndex = 0;
-        byte newIndex = 0;
+        int oldIndex = 0;
+        int newIndex = 0;
         while (oldIndex < oldRing.nodes.length) {
-            Node b = oldRing.nodes[oldIndex];
-            if (!b.name.equals(name)) {
-                newNodes[newIndex] = new Node(b.name, b.index, b.hash);
+            Node oldNode = oldRing.nodes[oldIndex];
+            if (!oldNode.name.equals(name)) {
+                newNodes[newIndex] = new Node(oldNode.name, oldNode.index, oldNode.hash);
                 newIndex++;
             }
             oldIndex++;

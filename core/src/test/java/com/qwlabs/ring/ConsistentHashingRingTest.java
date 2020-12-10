@@ -6,6 +6,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.Arrays;
+import java.util.Set;
 
 public class ConsistentHashingRingTest {
     private ConsistentHashingRing ring;
@@ -25,8 +26,10 @@ public class ConsistentHashingRingTest {
         ring.add("node5");
         ring.add("node6");
         ring.add("node7");
-        System.out.println(ring.responsibleNode("1"));
-        System.out.println(ring.replicateBuckets("1", 1));
+        Set<String> buckets = ring.replicateBuckets("1", 2);
+        System.out.println(buckets);
+        ring.remove(buckets.iterator().next());
         System.out.println(ring.replicateBuckets("1", 2));
+        System.out.println(ring);
     }
 }
