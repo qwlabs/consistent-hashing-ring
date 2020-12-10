@@ -36,9 +36,10 @@ subprojects {
         useJUnitPlatform()
     }
 
+
     dependencies {
-        implementation "com.google.guava:guava:${guavaVersion}"
-        implementation "org.slf4j:slf4j-api:${slf4jVersion}"
-        implementation "net.openhft:zero-allocation-hashing:${openhftZeroAllocationHashingVersion}"
+        testImplementation "org.junit.jupiter:junit-jupiter-api:${junitVersion}"
+        testImplementation "org.junit.jupiter:junit-jupiter-engine:${junitVersion}"
     }
+
 }

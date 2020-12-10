@@ -2,4 +2,4 @@ rootProject.name = 'consistent-hashing-ring'
 
 include 'core'
 include 'extensions:openhft-hashing'
-include 'extensions:codahale-metrics'
+include 'extensions:dropwizard-metrics'

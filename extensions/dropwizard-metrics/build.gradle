@@ -1,0 +1,4 @@
+dependencies {
+    compile project(':core')
+    implementation "io.dropwizard.metrics:metrics-core:${dropwizardVersion}"
+}
