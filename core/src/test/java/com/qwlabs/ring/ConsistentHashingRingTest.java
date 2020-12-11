@@ -5,7 +5,6 @@ import net.openhft.hashing.LongHashFunction;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.Arrays;
 import java.util.Set;
 
 public class ConsistentHashingRingTest {
@@ -18,18 +17,26 @@ public class ConsistentHashingRingTest {
     }
 
     @Test
-    void test() {
-        ring.add("node1");
-        ring.add("node2");
-        ring.add("node3");
-        ring.add("node4");
-        ring.add("node5");
-        ring.add("node6");
-        ring.add("node7");
-        Set<String> buckets = ring.replicateBuckets("1", 2);
+    void test_remove() {
+        for (int index = 0; index <= 50; index++) {
+            ring.add("node" + index);
+        }
+        Set<String> buckets = ring.replicateBuckets("1", 5);
         System.out.println(buckets);
         ring.remove(buckets.iterator().next());
-        System.out.println(ring.replicateBuckets("1", 2));
+        System.out.println(ring.replicateBuckets("1", 5));
+        System.out.println(ring);
+    }
+
+    @Test
+    void test_add() {
+        for (int index = 0; index <= 50; index++) {
+            ring.add("node" + index);
+        }
+        Set<String> buckets = ring.replicateBuckets("1", 5);
+        System.out.println(buckets);
+        ring.add("node101");
+        System.out.println(ring.replicateBuckets("1", 5));
         System.out.println(ring);
     }
 }
