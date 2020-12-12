@@ -20,6 +20,8 @@ public class ConsistentHashingRing {
     private static final Logger LOGGER = LoggerFactory.getLogger(ConsistentHashingRing.class);
     public static final int VIRTUAL_NODE_COUNT_PER_NODE = 500;
     private static final int MAX_SPIN_RETRY_TIMES = 40;
+    private static final long SPIN_MILLIS_PER_ONE_TIME = 100L;
+    private static final long SPIN_MILLIS_WARNING = (MAX_SPIN_RETRY_TIMES * SPIN_MILLIS_PER_ONE_TIME) / 2;
     @NonNull
     private final String name;
     @NonNull
@@ -47,7 +49,7 @@ public class ConsistentHashingRing {
     public synchronized void add(@NonNull String name) {
         Preconditions.checkNotNull(name, "Name must not be null");
         Ring oldRing = this.ring;
-        if (oldRing.buckets.contains(name)) {
+        if (oldRing.nodeNames.contains(name)) {
             return;
         }
         LOGGER.trace("Add node {} to the {}.", name, this.name);
@@ -69,17 +71,17 @@ public class ConsistentHashingRing {
                 newNode = iterator.hasNext() ? iterator.next() : null;
             }
         }
-        ImmutableSet<String> buckets = ImmutableSet.<String>builderWithExpectedSize(oldRing.buckets.size() + 1)
-                .addAll(oldRing.buckets)
+        ImmutableSet<String> nodeNames = ImmutableSet.<String>builderWithExpectedSize(oldRing.nodeNames.size() + 1)
+                .addAll(oldRing.nodeNames)
                 .add(name)
                 .build();
-        this.ring = new Ring(newNodes, buckets);
+        this.ring = new Ring(newNodes, nodeNames);
     }
 
     public synchronized void remove(@NonNull String name) {
         Preconditions.checkNotNull(name, "Name must not be null");
         Ring oldRing = this.ring;
-        if (!oldRing.buckets.contains(name)) {
+        if (!oldRing.nodeNames.contains(name)) {
             return;
         }
         LOGGER.trace("Remove node {} from the {}.", name, this.name);
@@ -94,9 +96,9 @@ public class ConsistentHashingRing {
             }
             oldIndex++;
         }
-        HashSet<String> newBuckets = new HashSet<>(oldRing.buckets);
-        newBuckets.remove(name);
-        this.ring = new Ring(newNodes, ImmutableSet.copyOf(newBuckets));
+        HashSet<String> newNodeNames = new HashSet<>(oldRing.nodeNames);
+        newNodeNames.remove(name);
+        this.ring = new Ring(newNodes, ImmutableSet.copyOf(newNodeNames));
     }
 
 
@@ -110,72 +112,72 @@ public class ConsistentHashingRing {
     public String responsibleNode(@NonNull String key, boolean spinning) {
         Preconditions.checkNotNull(key, "key must not be null");
         Ring ring = spin(spinning);
-        int index = binarySearch(ring, key);
+        int index = search(ring, key);
         return (index < 0) ? null : (ring.nodes[index]).name;
     }
 
     @NonNull
-    public ImmutableSet<String> replicateBuckets(@NonNull String key, int replicas) {
-        return replicateBuckets(key, replicas, true);
+    public ImmutableSet<String> replicateNodes(@NonNull String key, int replicas) {
+        return replicateNodes(key, replicas, true);
     }
 
 
     @NonNull
-    public ImmutableSet<String> replicateBuckets(@NonNull String key, int replicas, boolean spinning) {
+    public ImmutableSet<String> replicateNodes(@NonNull String key, int replicas, boolean spinning) {
         Preconditions.checkNotNull(key, "key must not be null");
         Ring ring = spin(spinning);
-        int nodeIndex = binarySearch(ring, key);
+        int nodeIndex = search(ring, key);
         if (nodeIndex < 0) {
             return ImmutableSet.of();
         }
-        int maxReplicas = ring.buckets.size();
-        if (replicas > maxReplicas - 1) {
+        int maxReplicateNodes = ring.nodeNames.size();
+        if (replicas > maxReplicateNodes - 1) {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("There are not enough buckets in the consistent hash ring for {} replicas.", replicas);
             }
-            replicas = maxReplicas - 1;
+            replicas = maxReplicateNodes - 1;
         }
         Node node = ring.nodes[nodeIndex];
         ImmutableSet<String>[] originalReplicateNodes = node.replicateNodes;
         if (originalReplicateNodes != null) {
-            for (ImmutableSet<String> buckets : originalReplicateNodes) {
-                if (buckets.size() == replicas) {
-                    return buckets;
+            for (ImmutableSet<String> nodes : originalReplicateNodes) {
+                if (nodes.size() == replicas) {
+                    return nodes;
                 }
             }
         }
-        HashSet<String> buckets = new HashSet<>();
-        while (buckets.size() < replicas) {
+        HashSet<String> replicateNodes = new HashSet<>();
+        while (replicateNodes.size() < replicas) {
             if (++nodeIndex == ring.nodes.length) {
                 nodeIndex = 0;
             }
-            String bucket = (ring.nodes[nodeIndex]).name;
-            if (!bucket.equals(node.name)) {
-                buckets.add(bucket);
+            String nodeName = ring.nodes[nodeIndex].name;
+            if (!nodeName.equals(node.name)) {
+                replicateNodes.add(nodeName);
             }
         }
-        ImmutableSet<String> resultBuckets = ImmutableSet.copyOf(buckets);
-        ImmutableSet<String>[] newBuckets;
+        ImmutableSet<String> resultNodes = ImmutableSet.copyOf(replicateNodes);
+        ImmutableSet<String>[] newNodes;
         if (originalReplicateNodes == null) {
-            newBuckets = new ImmutableSet[]{resultBuckets};
+            newNodes = new ImmutableSet[]{resultNodes};
         } else {
-            newBuckets = Arrays.copyOf(originalReplicateNodes, originalReplicateNodes.length + 1);
-            newBuckets[newBuckets.length - 1] = resultBuckets;
+            newNodes = Arrays.copyOf(originalReplicateNodes, originalReplicateNodes.length + 1);
+            newNodes[newNodes.length - 1] = resultNodes;
         }
-        node.replicateNodes = newBuckets;
-        return resultBuckets;
+        node.replicateNodes = newNodes;
+        return resultNodes;
     }
 
     @NonNull
-    public Set<String> buckets() {
-        return this.ring.buckets;
+    public Set<String> nodes() {
+        return this.ring.nodeNames;
     }
 
-    public int bucketSize() {
-        return this.ring.buckets.size();
+    public int size() {
+        return this.ring.nodeNames.size();
     }
 
-    private int binarySearch(@NonNull Ring ring, @NonNull String key) {
+    private int search(@NonNull Ring ring, @NonNull String key) {
         if (ring.nodes.length == 0) {
             return -1;
         }
@@ -206,11 +208,11 @@ public class ConsistentHashingRing {
             long nowMillis = System.currentTimeMillis();
             for (int retryTimes = 0; result.nodes.length == 0; retryTimes++) {
                 try {
-                    Thread.sleep(100L);
+                    Thread.sleep(SPIN_MILLIS_PER_ONE_TIME);
                 } catch (InterruptedException e) {
                     LOGGER.debug("Spin while consistent hashing is empty was interrupted", e);
                 }
-                if (System.currentTimeMillis() - nowMillis > 2000L) {
+                if (System.currentTimeMillis() - nowMillis > SPIN_MILLIS_WARNING) {
                     LOGGER.warn("Node is waiting for an operational cluster member");
                     nowMillis = System.currentTimeMillis();
                 }
@@ -274,11 +276,11 @@ public class ConsistentHashingRing {
     protected static class Ring {
         protected final Node[] nodes;
         @NonNull
-        protected final ImmutableSet<String> buckets;
+        protected final ImmutableSet<String> nodeNames;
 
-        Ring(@NonNull Node[] nodes, @NonNull ImmutableSet<String> buckets) {
+        Ring(@NonNull Node[] nodes, @NonNull ImmutableSet<String> nodeNames) {
             this.nodes = nodes;
-            this.buckets = buckets;
+            this.nodeNames = nodeNames;
         }
     }
 

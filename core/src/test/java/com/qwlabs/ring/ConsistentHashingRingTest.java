@@ -12,19 +12,19 @@ public class ConsistentHashingRingTest {
 
     @BeforeEach
     void setUp() {
-        LongHashFunction longHashFunction = LongHashFunction.xx();
+        LongHashFunction longHashFunction = LongHashFunction.xx(Long.MAX_VALUE);
         ring = new ConsistentHashingRing("Test Ring", longHashFunction::hashChars);
     }
 
     @Test
     void test_remove() {
-        for (int index = 0; index <= 50; index++) {
+        for (int index = 0; index <= 100; index++) {
             ring.add("node" + index);
         }
-        Set<String> buckets = ring.replicateBuckets("1", 5);
-        System.out.println(buckets);
-        ring.remove(buckets.iterator().next());
-        System.out.println(ring.replicateBuckets("1", 5));
+        Set<String> nodes = ring.replicateNodes("1", 3);
+        System.out.println(nodes);
+        ring.remove(nodes.iterator().next());
+        System.out.println(ring.replicateNodes("1", 3));
         System.out.println(ring);
     }
 
@@ -33,10 +33,10 @@ public class ConsistentHashingRingTest {
         for (int index = 0; index <= 50; index++) {
             ring.add("node" + index);
         }
-        Set<String> buckets = ring.replicateBuckets("1", 5);
-        System.out.println(buckets);
+        Set<String> nodes = ring.replicateNodes("1", 5);
+        System.out.println(nodes);
         ring.add("node101");
-        System.out.println(ring.replicateBuckets("1", 5));
+        System.out.println(ring.replicateNodes("1", 5));
         System.out.println(ring);
     }
 }
